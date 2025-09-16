@@ -1,5 +1,5 @@
 # 1단계: 빌드
-FROM openjdk:17-jdk-slim AS builder
+FROM openjdk:21-jdk-slim AS builder
 WORKDIR /app
 COPY gradlew .
 COPY gradle gradle
