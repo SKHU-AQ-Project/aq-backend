@@ -1,0 +1,23 @@
+spring:
+    datasource:
+        url: jdbc:h2:mem:testdb
+        driver-class-name: org.h2.Driver
+        username: sa
+        password:
+    jpa:
+        hibernate:
+            ddl-auto: create-drop
+        database-platform: org.hibernate.dialect.H2Dialect
+        show-sql: true
+    h2:
+        console:
+            enabled: true
+
+jwt:
+    secretKey: test-secret-key-for-testing-purposes-only-make-it-long-enough
+    access:
+        expiration: '3600000'
+        header: Authorization
+    refresh:
+        expiration: '1209600000'
+        header: RefreshToken
