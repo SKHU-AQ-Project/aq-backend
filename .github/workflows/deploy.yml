@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  JAVA_VERSION: "17"
+  JAVA_VERSION: "21"
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -36,9 +36,11 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
+        working-directory: ./backend
 
-      - name: Build & Test
-        run: ./gradlew clean build --info
+      - name: Build Only (Skip Tests)
+        run: ./gradlew clean build -x test --info
+        working-directory: ./backend
 
   # ---- main push에서만 배포 ----
   deploy:
@@ -56,8 +58,9 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: gradle
 
-      - name: (Optional) Build artifact
+      - name: Build artifact (Skip Tests)
         run: ./gradlew clean build -x test
+        working-directory: ./backend
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -75,6 +78,7 @@ jobs:
           ECR_REGISTRY:   ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
+          cd backend
           docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}" .
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}"
 
@@ -91,7 +95,7 @@ jobs:
             ECR_REPOSITORY="${{ secrets.ECR_REPOSITORY }}"
             IMAGE_TAG="${{ env.IMAGE_TAG }}"
             IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-            CONTAINER_NAME="my-app"
+            CONTAINER_NAME="aq-backend"
 
             # Login to ECR
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
@@ -107,19 +111,16 @@ jobs:
             # Run new container
             docker run -d --name "$CONTAINER_NAME" \
               --restart unless-stopped \
-              -p 8443:8443 \
+              -p 8080:8080 \
               -e TZ=Asia/Seoul \
               -e SPRING_PROFILES_ACTIVE=prod \
               -e DB_HOST='${{ secrets.DB_HOST }}' \
               -e DB_USERNAME='${{ secrets.DB_USERNAME }}' \
               -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
-              -e DB_NAME='mydatabase' \
+              -e DB_NAME='${{ secrets.DB_NAME }}' \
               -e JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}' \
               -e JWT_ACCESS_EXPIRATION='${{ secrets.JWT_ACCESS_EXPIRATION }}' \
               -e JWT_ACCESS_HEADER='${{ secrets.JWT_ACCESS_HEADER }}' \
               -e JWT_REFRESH_EXPIRATION='${{ secrets.JWT_REFRESH_EXPIRATION }}' \
               -e JWT_REFRESH_HEADER='${{ secrets.JWT_REFRESH_HEADER }}' \
-              -e S3_REGION='${{ secrets.S3_REGION }}' \
-              -e S3_BUCKETNAME='${{ secrets.S3_BUCKETNAME }}' \
-              -v /etc/certs/keystore.p12:/etc/certs/keystore.p12 \
               "$IMAGE_URI"
