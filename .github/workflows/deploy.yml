@@ -1,51 +1,66 @@
-name: CI/CD Pipeline
+name: CI/CD with AWS ECR and EC2
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
     types: [ opened, synchronize, reopened ]
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: "17"
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
+  # ---- PR 검증용 CI ----
   build:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-      
-      - name: Create application.yml
-        run: |
-          mkdir -p src/main/resources
-          echo "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
-          
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
-      
-      - name: Build with Gradle
-        run: ./gradlew build -x test
 
+      - name: Build & Test
+        run: ./gradlew clean build --info
+
+  # ---- main push에서만 배포 ----
   deploy:
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    needs: []
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Create application.yml
-        run: |
-          mkdir -p src/main/resources
-          echo "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: (Optional) Build artifact
+        run: ./gradlew clean build -x test
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -56,45 +71,55 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY:   ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          ECR_REGISTRY="${{ steps.login-ecr.outputs.registry }}"
-          ECR_REPOSITORY="${{ secrets.ECR_REPOSITORY }}"
-          IMAGE_TAG="${{ github.sha }}"
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}" .
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}"
 
-          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Deploy to EC2 instance
-        uses: appleboy/ssh-action@master
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host:      ${{ secrets.EC2_HOST }}
           username:  ${{ secrets.EC2_USERNAME }}
           key:       ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
           script: |
-            aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws configure set region ${{ secrets.AWS_REGION }}
-            ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}
+            set -e
             ECR_REGISTRY="${{ steps.login-ecr.outputs.registry }}"
-            IMAGE_TAG="${{ github.sha }}"
+            ECR_REPOSITORY="${{ secrets.ECR_REPOSITORY }}"
+            IMAGE_TAG="${{ env.IMAGE_TAG }}"
+            IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+            CONTAINER_NAME="my-app"
 
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-            docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-            docker stop sikbbang-app || true
-            docker rm sikbbang-app || true
+            # Login to ECR
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+              | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-            docker run -d --name sikbbang-app --restart unless-stopped \
-              -p 8080:8080 \
+            # Pull new image
+            docker pull "$IMAGE_URI"
+
+            # Stop & remove old container
+            docker stop "$CONTAINER_NAME" || true
+            docker rm   "$CONTAINER_NAME" || true
+
+            # Run new container
+            docker run -d --name "$CONTAINER_NAME" \
+              --restart unless-stopped \
+              -p 8443:8443 \
               -e TZ=Asia/Seoul \
-              -e SPRING_PROFILES_ACTIVE=local \
-              -e DB_HOST="${{ secrets.DB_HOST }}" \
-              -e DB_PORT="${{ secrets.DB_PORT }}" \
-              -e DB_NAME="${{ secrets.DB_NAME }}" \
-              -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
-              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-              -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
-              -e JWT_ACCESS_EXPIRATION="${{ secrets.JWT_ACCESS_EXPIRATION }}" \
-              -e JWT_ACCESS_HEADER="${{ secrets.JWT_ACCESS_HEADER }}" \
-              -e JWT_REFRESH_EXPIRATION="${{ secrets.JWT_REFRESH_EXPIRATION }}" \
-              -e JWT_REFRESH_HEADER="${{ secrets.JWT_REFRESH_HEADER }}" \
-              "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+              -e SPRING_PROFILES_ACTIVE=prod \
+              -e DB_HOST='${{ secrets.DB_HOST }}' \
+              -e DB_USERNAME='${{ secrets.DB_USERNAME }}' \
+              -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+              -e DB_NAME='mydatabase' \
+              -e JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}' \
+              -e JWT_ACCESS_EXPIRATION='${{ secrets.JWT_ACCESS_EXPIRATION }}' \
+              -e JWT_ACCESS_HEADER='${{ secrets.JWT_ACCESS_HEADER }}' \
+              -e JWT_REFRESH_EXPIRATION='${{ secrets.JWT_REFRESH_EXPIRATION }}' \
+              -e JWT_REFRESH_HEADER='${{ secrets.JWT_REFRESH_HEADER }}' \
+              -e S3_REGION='${{ secrets.S3_REGION }}' \
+              -e S3_BUCKETNAME='${{ secrets.S3_BUCKETNAME }}' \
+              -v /etc/certs/keystore.p12:/etc/certs/keystore.p12 \
+              "$IMAGE_URI"
