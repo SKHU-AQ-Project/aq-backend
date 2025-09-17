@@ -36,11 +36,9 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
-        working-directory: ./backend
 
       - name: Build Only (Skip Tests)
         run: ./gradlew clean build -x test --info
-        working-directory: ./backend
 
   # ---- main push에서만 배포 ----
   deploy:
@@ -60,7 +58,6 @@ jobs:
 
       - name: Build artifact (Skip Tests)
         run: ./gradlew clean build -x test
-        working-directory: ./backend
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -78,7 +75,6 @@ jobs:
           ECR_REGISTRY:   ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          cd backend
           docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}" .
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}"
 
