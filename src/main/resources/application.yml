@@ -1,41 +1,47 @@
 server:
-  port: 8080
+    port: 8080
 
 spring:
-  profiles:
-    active: local
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:aq-project}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    database-platform: org.hibernate.dialect.MySQLDialect
-    properties:
-      hibernate:
-        format_sql: true
-    show-sql: true
-  servlet:
-    multipart:
-      max-file-size: 5MB
-      max-request-size: 5MB
+    profiles:
+        active: local
+    datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:aq-project}
+        username: ${DB_USERNAME:root}
+        password: ${DB_PASSWORD:}
+    jpa:
+        hibernate:
+            ddl-auto: update
+        database-platform: org.hibernate.dialect.MySQLDialect
+        properties:
+            hibernate:
+                format_sql: true
+        show-sql: true
+    servlet:
+        multipart:
+            max-file-size: 5MB
+            max-request-size: 5MB
 
 springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    url: /v3/api-docs
-    display-request-duration: true
-    groups-order: ASC
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui.html
+        url: /v3/api-docs
+        display-request-duration: true
+        groups-order: ASC
 
 jwt:
-  secretKey: ${JWT_SECRET_KEY}
-  access:
-    expiration: ${JWT_ACCESS_EXPIRATION}
-    header: ${JWT_ACCESS_HEADER:Authorization}
-  refresh:
-    expiration: ${JWT_REFRESH_EXPIRATION}
-    header: ${JWT_REFRESH_HEADER:RefreshToken}
+    secretKey: ${JWT_SECRET_KEY:mySecretKey123456789012345678901234567890}
+    access:
+        expiration: ${JWT_ACCESS_EXPIRATION:3600000}
+        header: ${JWT_ACCESS_HEADER:Authorization}
+    refresh:
+        expiration: ${JWT_REFRESH_EXPIRATION:3600000}
+        header: ${JWT_REFRESH_HEADER:RefreshToken}
+
+oauth2:
+    kakao:
+        client-id: ${KAKAO_CLIENT_ID:your_kakao_client_id}
+        jwk-set-uri: https://kauth.kakao.com/.well-known/jwks.json
+        issuer: https://kauth.kakao.com
