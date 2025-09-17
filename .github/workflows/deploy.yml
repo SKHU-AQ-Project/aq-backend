@@ -1,4 +1,4 @@
-name: CI/CD with AWS ECR and EC2
+name: CI/CD Pipeline
 
 on:
   pull_request:
