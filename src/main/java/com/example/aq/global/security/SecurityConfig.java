@@ -54,15 +54,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000", 
-            "https://aq-frontend-eight.vercel.app", 
-            "http://13.209.3.82:3000"
+        
+        // Vercel 도메인 패턴 추가 (더 유연한 설정)
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:*", 
+            "https://*.vercel.app",
+            "https://aq-frontend-eight.vercel.app",
+            "http://13.209.3.82:*",
+            "https://13.209.3.82:*"
         ));
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "RefreshToken", "id_token", "Content-Type"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "RefreshToken", "id_token", "Content-Type", "X-Requested-With"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "RefreshToken"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Preflight 요청 캐시 시간
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

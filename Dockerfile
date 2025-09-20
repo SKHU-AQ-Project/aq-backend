@@ -36,5 +36,8 @@ EXPOSE 8080 8443
 # SSL 환경변수 설정
 ENV SSL_ENABLED=true
 ENV SSL_KEYSTORE_PATH=/app/keystore.p12
+ENV SSL_KEYSTORE_PASSWORD=aq-project-5967
+ENV SSL_KEY_ALIAS=springboot
+ENV SERVER_SSL_PORT=8443
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
