@@ -1,6 +1,12 @@
 server:
     port: 8080
     address: 0.0.0.0
+    ssl:
+        enabled: ${SSL_ENABLED:false}
+        key-store: ${SSL_KEYSTORE_PATH:classpath:keystore.p12}
+        key-store-password: ${SSL_KEYSTORE_PASSWORD:changeit}
+        key-store-type: PKCS12
+        key-alias: ${SSL_KEY_ALIAS:springboot}
 
 spring:
     profiles:
