@@ -59,7 +59,8 @@ jobs:
                   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
                   IMAGE_TAG: ${{ github.sha }}
               run: |
-                  docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+                  docker build --build-arg SSL_KEYSTORE_PASSWORD=${{ secrets.SSL_KEYSTORE_PASSWORD }} \
+                    -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
                   docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
             - name: Deploy to EC2 instance
@@ -77,8 +78,7 @@ jobs:
 
                       docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
-                      docker run -d --name my-app -p 8080:8080 \
-                        -v /etc/certs/keystore.p12:/etc/certs/keystore.p12 \
+                      docker run -d --name my-app -p 8080:8080 -p 8443:8443 \
                         -e DB_HOST=${{ secrets.DB_HOST }} \
                         -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
                         -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
@@ -88,6 +88,7 @@ jobs:
                         -e JWT_ACCESS_HEADER=${{ env.JWT_ACCESS_HEADER }} \
                         -e JWT_REFRESH_EXPIRATION=${{ env.JWT_REFRESH_EXPIRATION }} \
                         -e JWT_REFRESH_HEADER=${{ env.JWT_REFRESH_HEADER }} \
+                        -e SSL_KEYSTORE_PASSWORD=${{ secrets.SSL_KEYSTORE_PASSWORD }} \
                         -e S3_REGION=${{ secrets.S3_REGION }} \
                         -e S3_BUCKETNAME=${{ secrets.S3_BUCKETNAME }} \
                         ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
