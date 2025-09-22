@@ -55,7 +55,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Vercel 도메인 패턴 추가 (더 유연한 설정)
+        // 기본 CORS 설정
         configuration.setAllowedOriginPatterns(Arrays.asList(
             "http://localhost:*", 
             "https://*.vercel.app",
