@@ -61,7 +61,11 @@ public class SecurityConfig {
             "https://*.vercel.app",
             "https://aq-frontend-eight.vercel.app",
             "http://13.209.3.82:*",
-            "https://13.209.3.82:*"
+            "https://13.209.3.82:*",
+            "https://*.duckdns.org:*",
+            "http://*.duckdns.org:*",
+            "https://aq-project.duckdns.org:*",
+            "http://aq-project.duckdns.org:*"
         ));
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));

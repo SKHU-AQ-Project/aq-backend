@@ -78,7 +78,31 @@ jobs:
 
                       docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
+                      # SSL 인증서 확인 및 설정
+                      if [ ! -d "/etc/letsencrypt/live/aq-project.duckdns.org" ]; then
+                          echo "SSL 인증서가 없습니다. Let's Encrypt 인증서를 발급합니다..."
+                          sudo certbot certonly --standalone \
+                              --email admin@aq-project.duckdns.org \
+                              --agree-tos \
+                              --no-eff-email \
+                              -d aq-project.duckdns.org
+                          
+                          # PKCS12 형식으로 변환
+                          sudo openssl pkcs12 -export \
+                              -in /etc/letsencrypt/live/aq-project.duckdns.org/fullchain.pem \
+                              -inkey /etc/letsencrypt/live/aq-project.duckdns.org/privkey.pem \
+                              -out /etc/letsencrypt/live/aq-project.duckdns.org/keystore.p12 \
+                              -name springboot \
+                              -passout pass:${{ secrets.SSL_KEYSTORE_PASSWORD }}
+                      fi
+
                       docker run -d --name my-app -p 8080:8080 -p 8443:8443 \
+                        -v /etc/letsencrypt/live:/app/ssl:ro \
+                        -e SSL_ENABLED=true \
+                        -e SSL_KEYSTORE_PATH=/app/ssl/aq-project.duckdns.org/keystore.p12 \
+                        -e SSL_KEYSTORE_PASSWORD=${{ secrets.SSL_KEYSTORE_PASSWORD }} \
+                        -e SSL_KEY_ALIAS=springboot \
+                        -e SERVER_SSL_PORT=8443 \
                         -e DB_HOST=${{ secrets.DB_HOST }} \
                         -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
                         -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
@@ -88,7 +112,7 @@ jobs:
                         -e JWT_ACCESS_HEADER=${{ env.JWT_ACCESS_HEADER }} \
                         -e JWT_REFRESH_EXPIRATION=${{ env.JWT_REFRESH_EXPIRATION }} \
                         -e JWT_REFRESH_HEADER=${{ env.JWT_REFRESH_HEADER }} \
-                        -e SSL_KEYSTORE_PASSWORD=${{ secrets.SSL_KEYSTORE_PASSWORD }} \
+                        -e KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
                         -e S3_REGION=${{ secrets.S3_REGION }} \
                         -e S3_BUCKETNAME=${{ secrets.S3_BUCKETNAME }} \
                         ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}

@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+    app:
+        build: .
+        container_name: aq-backend
+        ports:
+            - '8080:8080'
+            - '8443:8443'
+        environment:
+            - SSL_ENABLED=true
+            - SSL_KEYSTORE_PATH=/app/ssl/keystore.p12
+            - SSL_KEYSTORE_PASSWORD=aq-project-5967
+            - SSL_KEY_ALIAS=springboot
+            - SERVER_SSL_PORT=8443
+            - DB_HOST=localhost
+            - DB_PORT=3306
+            - DB_NAME=aq-project
+            - DB_USERNAME=${DB_USERNAME:-root}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - JWT_SECRET_KEY=${JWT_SECRET_KEY:-mySecretKey123456789012345678901234567890}
+            - KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID}
+         volumes:
+             # Let's Encrypt 인증서 마운트 (aq-project.duckdns.org 도메인 사용)
+             - /etc/letsencrypt/live:/app/ssl:ro
+             # 또는 로컬 인증서 사용 시
+             # - ./ssl:/app/ssl:ro
+        restart: unless-stopped
+        networks:
+            - aq-network
+
+networks:
+    aq-network:
+        driver: bridge

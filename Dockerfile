@@ -20,11 +20,14 @@ ENV LANG=C.UTF-8
 # SSL keystore 비밀번호를 빌드 인자로 받기 (GitHub Secrets에서 주입)
 ARG SSL_KEYSTORE_PASSWORD
 
-# SSL keystore 생성
+# SSL 디렉토리 생성 (외부 인증서 마운트용)
+RUN mkdir -p /app/ssl
+
+# 기본 keystore 생성 (외부 인증서가 없는 경우를 위한 fallback)
 RUN keytool -genkeypair -alias springboot -keyalg RSA -keysize 2048 \
     -storetype PKCS12 -keystore /app/keystore.p12 \
     -validity 365 -storepass ${SSL_KEYSTORE_PASSWORD} \
-    -dname "CN=13.209.3.82, OU=SKHU, O=AQ-Project, L=Seoul, S=Seoul, C=KR" \
+    -dname "CN=localhost, OU=SKHU, O=AQ-Project, L=Seoul, S=Seoul, C=KR" \
     -noprompt
 
 # 빌드된 JAR 파일만 런타임 이미지로 복사합니다.
