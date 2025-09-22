@@ -81,7 +81,31 @@ jobs:
                       # SSL 인증서 확인 및 설정
                       if [ ! -d "/etc/letsencrypt/live/aq-project.duckdns.org" ]; then
                           echo "SSL 인증서가 없습니다. Let's Encrypt 인증서를 발급합니다..."
+                          
+                          # 포트 80 사용 중인 프로세스 확인 및 중지
+                          echo "포트 80 사용 중인 프로세스 확인 중..."
+                          sudo lsof -ti:80 | xargs -r sudo kill -9 || true
+                          sudo fuser -k 80/tcp || true
+                          sleep 3
+                          
+                          # 포트 80이 비어있는지 확인
+                          if sudo netstat -tlnp | grep :80; then
+                              echo "포트 80이 여전히 사용 중입니다. 강제로 해제합니다..."
+                              sudo pkill -f "python.*certbot" || true
+                              sudo pkill -f "certbot" || true
+                              sleep 2
+                          fi
+                          
+                          # Certbot 설치 확인
+                          if ! command -v certbot &> /dev/null; then
+                              echo "Certbot 설치 중..."
+                              sudo yum update -y
+                              sudo yum install -y certbot
+                          fi
+                          
+                          # SSL 인증서 발급 (포트 80 확보 후)
                           sudo certbot certonly --standalone \
+                              --non-interactive \
                               --email admin@aq-project.duckdns.org \
                               --agree-tos \
                               --no-eff-email \
@@ -94,6 +118,12 @@ jobs:
                               -out /etc/letsencrypt/live/aq-project.duckdns.org/keystore.p12 \
                               -name springboot \
                               -passout pass:${{ secrets.SSL_KEYSTORE_PASSWORD }}
+                          
+                          # 권한 설정
+                          sudo chown root:root /etc/letsencrypt/live/aq-project.duckdns.org/keystore.p12
+                          sudo chmod 644 /etc/letsencrypt/live/aq-project.duckdns.org/keystore.p12
+                      else
+                          echo "SSL 인증서가 이미 존재합니다."
                       fi
 
                       docker run -d --name my-app -p 8080:8080 -p 8443:8443 \
