@@ -128,11 +128,11 @@ jobs:
 
                       docker run -d --name my-app -p 8080:8080 -p 8443:8443 \
                         -v /etc/letsencrypt/live:/app/ssl:ro \
-                        -e SSL_ENABLED=true \
-                        -e SSL_KEYSTORE_PATH=/app/ssl/aq-project.duckdns.org/keystore.p12 \
-                        -e SSL_KEYSTORE_PASSWORD=${{ secrets.SSL_KEYSTORE_PASSWORD }} \
-                        -e SSL_KEY_ALIAS=springboot \
-                        -e SERVER_SSL_PORT=8443 \
+                        -e SERVER_SSL_ENABLED=true \
+                        -e SERVER_SSL_KEY_STORE=/app/ssl/aq-project.duckdns.org/keystore.p12 \
+                        -e SERVER_SSL_KEY_STORE_PASSWORD=${{ secrets.SSL_KEYSTORE_PASSWORD }} \
+                        -e SERVER_SSL_KEY_STORE_TYPE=PKCS12 \
+                        -e SERVER_SSL_KEY_ALIAS=springboot \
                         -e DB_HOST=${{ secrets.DB_HOST }} \
                         -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
                         -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
