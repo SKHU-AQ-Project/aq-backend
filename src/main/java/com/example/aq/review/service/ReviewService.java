@@ -1,5 +1,7 @@
 package com.example.aq.review.service;
 
+import com.example.aq.common.exception.BusinessException;
+import com.example.aq.common.exception.ErrorCode;
 import com.example.aq.domain.interaction.BookmarkRepository;
 import com.example.aq.domain.interaction.BookmarkType;
 import com.example.aq.domain.interaction.LikeRepository;
@@ -36,9 +38,9 @@ public class ReviewService {
     @Transactional
     public ReviewResponse createReview(String userEmail, CreateReviewRequest request) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND.getCode(), ErrorCode.USER_NOT_FOUND.getMessage()));
         AIModel model = modelRepository.findById(request.getModelId())
-                .orElseThrow(() -> new RuntimeException("모델을 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MODEL_NOT_FOUND.getCode(), ErrorCode.MODEL_NOT_FOUND.getMessage()));
 
         Review review = Review.builder()
                 .user(user)
@@ -62,10 +64,10 @@ public class ReviewService {
 
     public ReviewResponse getReview(Long reviewId, String userEmail) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("리뷰를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND.getCode(), ErrorCode.REVIEW_NOT_FOUND.getMessage()));
 
         if (review.getStatus() != ReviewStatus.PUBLISHED) {
-            throw new RuntimeException("삭제된 리뷰입니다");
+            throw new BusinessException(ErrorCode.REVIEW_NOT_FOUND.getCode(), ErrorCode.REVIEW_NOT_FOUND.getMessage());
         }
 
         review.incrementViewCount();
@@ -79,13 +81,13 @@ public class ReviewService {
     @Transactional
     public ReviewResponse updateReview(Long reviewId, String userEmail, UpdateReviewRequest request) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("리뷰를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND.getCode(), ErrorCode.REVIEW_NOT_FOUND.getMessage()));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND.getCode(), ErrorCode.USER_NOT_FOUND.getMessage()));
         
         if (!review.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("리뷰를 수정할 권한이 없습니다");
+            throw new BusinessException(ErrorCode.REVIEW_ACCESS_DENIED.getCode(), ErrorCode.REVIEW_ACCESS_DENIED.getMessage());
         }
 
         review.updateReview(
@@ -106,13 +108,13 @@ public class ReviewService {
     @Transactional
     public void deleteReview(Long reviewId, String userEmail) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("리뷰를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND.getCode(), ErrorCode.REVIEW_NOT_FOUND.getMessage()));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND.getCode(), ErrorCode.USER_NOT_FOUND.getMessage()));
         
         if (!review.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("리뷰를 삭제할 권한이 없습니다");
+            throw new BusinessException(ErrorCode.REVIEW_ACCESS_DENIED.getCode(), ErrorCode.REVIEW_ACCESS_DENIED.getMessage());
         }
 
         review.delete();
@@ -128,7 +130,7 @@ public class ReviewService {
 
     public Page<ReviewResponse> getReviewsByModel(Long modelId, Pageable pageable, String userEmail) {
         AIModel model = modelRepository.findById(modelId)
-                .orElseThrow(() -> new RuntimeException("모델을 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MODEL_NOT_FOUND.getCode(), ErrorCode.MODEL_NOT_FOUND.getMessage()));
 
         Long userId = userEmail != null ? 
                 userRepository.findByEmail(userEmail).map(User::getId).orElse(null) : null;
@@ -140,7 +142,7 @@ public class ReviewService {
         Long currentUserId = currentUserEmail != null ? 
                 userRepository.findByEmail(currentUserEmail).map(User::getId).orElse(null) : null;
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND.getCode(), ErrorCode.USER_NOT_FOUND.getMessage()));
         
         return reviewRepository.findByUserAndStatusOrderByCreatedAtDesc(user, ReviewStatus.PUBLISHED, pageable)
                 .map(review -> convertToReviewResponse(review, currentUserId));

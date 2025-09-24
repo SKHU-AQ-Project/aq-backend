@@ -53,8 +53,21 @@ public class ModelService {
     }
 
     public Page<ModelResponse> getModels(Pageable pageable, String userEmail) {
-        List<AIModel> models = modelRepository.findByStatus(ModelStatus.ACTIVE);
-        return Page.empty(); // TODO: 구현 필요
+        return modelRepository.findByStatus(ModelStatus.ACTIVE, pageable)
+                .map(model -> {
+                    Double averageRating = reviewRepository.getAverageRatingByModel(model);
+                    Long reviewCount = reviewRepository.getReviewCountByModel(model);
+                    
+                    Boolean isBookmarked = false;
+                    if (userEmail != null) {
+                        User user = userRepository.findByEmail(userEmail).orElse(null);
+                        if (user != null) {
+                            isBookmarked = bookmarkRepository.existsByUserAndTypeAndTargetId(user, BookmarkType.MODEL, model.getId());
+                        }
+                    }
+                    
+                    return convertToModelResponse(model, averageRating, reviewCount, isBookmarked);
+                });
     }
 
     public Page<ModelResponse> getModelsByCategory(ModelCategory category, Pageable pageable, String userEmail) {

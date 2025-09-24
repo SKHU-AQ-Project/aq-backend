@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface AIModelRepository extends JpaRepository<AIModel, Long> {
 
     List<AIModel> findByStatus(ModelStatus status);
+    
+    Page<AIModel> findByStatus(ModelStatus status, Pageable pageable);
 
     @Query("SELECT m FROM AIModel m WHERE m.status = 'ACTIVE' AND m.category = :category")
     List<AIModel> findByCategory(@Param("category") ModelCategory category);
