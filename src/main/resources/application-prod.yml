@@ -13,7 +13,7 @@ spring:
 
     jpa:
         hibernate:
-            ddl-auto: validate
+            ddl-auto: ${DDL_AUTO:update}
         database-platform: org.hibernate.dialect.MySQLDialect
         properties:
             hibernate:
