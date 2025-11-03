@@ -16,6 +16,22 @@ spring:
             ddl-auto: ${DDL_AUTO:update}
         database-platform: org.hibernate.dialect.MySQLDialect
 
+    mail:
+        host: smtp.gmail.com
+        port: 587
+        username: ${MAIL_USERNAME:}
+        password: ${MAIL_PASSWORD:}
+        properties:
+            mail:
+                smtp:
+                    auth: true
+                    starttls:
+                        enable: true
+                        required: true
+                    connectiontimeout: 5000
+                    timeout: 5000
+                    writetimeout: 5000
+
 springdoc:
     api-docs:
         path: /v3/api-docs
@@ -24,3 +40,11 @@ springdoc:
         url: /v3/api-docs
         display-request-duration: true
         groups-order: ASC
+
+jwt:
+    secret: ${JWT_SECRET:your-secret-key-change-this-in-production-use-long-random-string}
+    expiration: 86400000
+
+app:
+    frontend:
+        url: ${FRONTEND_URL:http://localhost:3000}

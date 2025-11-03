@@ -20,6 +20,30 @@ spring:
                 format_sql: false
         show-sql: false
 
+    mail:
+        host: smtp.gmail.com
+        port: 587
+        username: ${MAIL_USERNAME}
+        password: ${MAIL_PASSWORD}
+        properties:
+            mail:
+                smtp:
+                    auth: true
+                    starttls:
+                        enable: true
+                        required: true
+                    connectiontimeout: 5000
+                    timeout: 5000
+                    writetimeout: 5000
+
+jwt:
+    secret: ${JWT_SECRET}
+    expiration: 86400000
+
+app:
+    frontend:
+        url: ${FRONTEND_URL}
+
 logging:
     level:
         root: INFO

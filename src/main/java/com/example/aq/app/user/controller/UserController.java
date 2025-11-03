@@ -1,6 +1,7 @@
 package com.example.aq.app.user.controller;
 
 import com.example.aq.common.dto.BaseResponse;
+import com.example.aq.common.util.SecurityUtil;
 import com.example.aq.app.user.dto.UpdateUserRequest;
 import com.example.aq.app.user.dto.UserResponse;
 import com.example.aq.app.user.service.UserService;
@@ -50,13 +51,12 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "사용자 정보 수정", description = "사용자 정보를 수정합니다")
+    @Operation(summary = "사용자 정보 수정", description = "사용자 정보를 수정합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<UserResponse>> updateUser(
             @Parameter(description = "사용자 ID") @PathVariable Long id,
             @Valid @RequestBody UpdateUserRequest request) {
         
-        // TODO: 현재 로그인한 사용자 ID를 가져오는 로직 구현 필요
-        Long currentUserId = 1L; // 임시 값
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         
         UserResponse response = userService.updateUser(id, request, currentUserId);
         return ResponseEntity.ok(BaseResponse.success("사용자 정보가 성공적으로 수정되었습니다", response));

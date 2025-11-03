@@ -2,6 +2,7 @@ package com.example.aq.app.review.controller;
 
 import com.example.aq.common.dto.BaseResponse;
 import com.example.aq.common.dto.PageResponse;
+import com.example.aq.common.util.SecurityUtil;
 import com.example.aq.app.review.dto.CreateReviewRequest;
 import com.example.aq.app.review.dto.ReviewResponse;
 import com.example.aq.app.review.dto.UpdateReviewRequest;
@@ -106,37 +107,34 @@ public class ReviewController {
     }
 
     @PostMapping
-    @Operation(summary = "리뷰 작성", description = "새로운 리뷰를 작성합니다")
+    @Operation(summary = "리뷰 작성", description = "새로운 리뷰를 작성합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<ReviewResponse>> createReview(
             @Valid @RequestBody CreateReviewRequest request) {
         
-        // TODO: 현재 로그인한 사용자 ID를 가져오는 로직 구현 필요
-        Long currentUserId = 1L; // 임시 값
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         
         ReviewResponse response = reviewService.createReview(request, currentUserId);
         return ResponseEntity.ok(BaseResponse.success("리뷰가 성공적으로 작성되었습니다", response));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "리뷰 수정", description = "기존 리뷰를 수정합니다")
+    @Operation(summary = "리뷰 수정", description = "기존 리뷰를 수정합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<ReviewResponse>> updateReview(
             @Parameter(description = "리뷰 ID") @PathVariable Long id,
             @Valid @RequestBody UpdateReviewRequest request) {
         
-        // TODO: 현재 로그인한 사용자 ID를 가져오는 로직 구현 필요
-        Long currentUserId = 1L; // 임시 값
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         
         ReviewResponse response = reviewService.updateReview(id, request, currentUserId);
         return ResponseEntity.ok(BaseResponse.success("리뷰가 성공적으로 수정되었습니다", response));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "리뷰 삭제", description = "리뷰를 삭제합니다")
+    @Operation(summary = "리뷰 삭제", description = "리뷰를 삭제합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<Void>> deleteReview(
             @Parameter(description = "리뷰 ID") @PathVariable Long id) {
         
-        // TODO: 현재 로그인한 사용자 ID를 가져오는 로직 구현 필요
-        Long currentUserId = 1L; // 임시 값
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         
         reviewService.deleteReview(id, currentUserId);
         return ResponseEntity.ok(BaseResponse.success("리뷰가 성공적으로 삭제되었습니다", null));
