@@ -27,6 +27,9 @@ public class UserService {
             throw new ResourceNotFoundException("사용자", "id", id);
         }
         
+        // Lazy 컬렉션 초기화
+        user.getInterests().size();
+        
         return UserResponse.of(user);
     }
 
@@ -38,6 +41,9 @@ public class UserService {
             throw new ResourceNotFoundException("사용자", "email", email);
         }
         
+        // Lazy 컬렉션 초기화
+        user.getInterests().size();
+        
         return UserResponse.of(user);
     }
 
@@ -48,6 +54,9 @@ public class UserService {
         if (!user.getEnabled()) {
             throw new ResourceNotFoundException("사용자", "nickname", nickname);
         }
+        
+        // Lazy 컬렉션 초기화
+        user.getInterests().size();
         
         return UserResponse.of(user);
     }

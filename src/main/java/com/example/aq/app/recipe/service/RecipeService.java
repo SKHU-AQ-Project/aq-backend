@@ -29,41 +29,81 @@ public class RecipeService {
 
     public PageResponse<RecipeResponse> getRecipes(Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findLatestRecipes(pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
     public PageResponse<RecipeResponse> getPopularRecipes(Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findPopularRecipes(pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
     public PageResponse<RecipeResponse> getMostUsedRecipes(Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findMostUsedRecipes(pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
     public PageResponse<RecipeResponse> getFeaturedRecipes(Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findFeaturedRecipes(pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
     public PageResponse<RecipeResponse> searchRecipes(String keyword, Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.searchRecipes(keyword, pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
     public PageResponse<RecipeResponse> getRecipesByCategory(RecipeCategory category, Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findByCategory(category, pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
     public PageResponse<RecipeResponse> getRecipesByAuthor(Long authorId, Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findByAuthorId(authorId, pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
     public PageResponse<RecipeResponse> getRecipesByDifficulty(Integer difficulty, Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findByDifficultyLevel(difficulty, pageable);
+        // Lazy 컬렉션 초기화
+        recipes.forEach(recipe -> {
+            recipe.getTags().size();
+            recipe.getSuitableModels().size();
+        });
         return PageResponse.of(recipes.map(RecipeResponse::of));
     }
 
@@ -75,6 +115,10 @@ public class RecipeService {
         if (!recipe.getActive()) {
             throw new ResourceNotFoundException("레시피", "id", id);
         }
+        
+        // Lazy 컬렉션 초기화
+        recipe.getTags().size();
+        recipe.getSuitableModels().size();
         
         // 조회수 증가
         recipe.incrementViewCount();

@@ -16,7 +16,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     boolean existsByEmail(String email);
     
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.email = :email AND u.enabled = true")
+    boolean existsByEmailAndEnabled(String email);
+    
     boolean existsByNickname(String nickname);
+    
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.nickname = :nickname AND u.enabled = true")
+    boolean existsByNicknameAndEnabled(String nickname);
     
     @Query("SELECT u FROM User u WHERE u.enabled = true")
     java.util.List<User> findAllActiveUsers();

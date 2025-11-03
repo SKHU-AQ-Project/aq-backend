@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -37,12 +38,41 @@ public class AuthService {
     private static final SecureRandom random = new SecureRandom();
 
     public void signUp(SignUpRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        // 활성화된 사용자만 체크 (탈퇴한 사용자는 재가입 가능)
+        if (userRepository.existsByEmailAndEnabled(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다");
         }
 
-        if (userRepository.existsByNickname(request.getNickname())) {
+        if (userRepository.existsByNicknameAndEnabled(request.getNickname())) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다");
+        }
+
+        // 탈퇴한 사용자가 있으면 재활성화
+        Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
+        if (existingUser.isPresent() && !existingUser.get().getEnabled()) {
+            User user = existingUser.get();
+            
+            // 기존 토큰 먼저 삭제 (이메일 unique 제약조건 때문에)
+            tokenRepository.deleteByEmail(request.getEmail());
+            tokenRepository.flush(); // 즉시 반영
+            
+            user.changePassword(passwordEncoder.encode(request.getPassword()));
+            user.updateProfile(request.getNickname(), user.getBio(), user.getProfileImageUrl(), user.getInterests());
+            userRepository.save(user);
+            
+            // 새 인증 코드 생성
+            String code = generateVerificationCode();
+            EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+                    .email(request.getEmail())
+                    .token(code)
+                    .expiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES))
+                    .build();
+            tokenRepository.save(verificationToken);
+            
+            emailService.sendVerificationEmail(request.getEmail(), code);
+            
+            log.info("탈퇴한 사용자 재가입: {}", request.getEmail());
+            return;
         }
 
         User user = User.builder()
