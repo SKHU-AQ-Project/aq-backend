@@ -3,6 +3,7 @@ package com.example.aq.auth.controller;
 import com.example.aq.auth.dto.AuthResponse;
 import com.example.aq.auth.dto.LoginRequest;
 import com.example.aq.auth.dto.SignUpRequest;
+import com.example.aq.auth.dto.VerifyEmailRequest;
 import com.example.aq.auth.service.AuthService;
 import com.example.aq.common.dto.BaseResponse;
 import com.example.aq.common.exception.UnauthorizedException;
@@ -33,10 +34,9 @@ public class AuthController {
     }
 
     @PostMapping("/verify-email")
-    @Operation(summary = "이메일 인증", description = "이메일 인증 토큰으로 이메일을 인증합니다")
-    public ResponseEntity<BaseResponse<Void>> verifyEmail(
-            @Parameter(description = "인증 토큰") @RequestParam String token) {
-        authService.verifyEmail(token);
+    @Operation(summary = "이메일 인증", description = "이메일과 인증 코드로 이메일을 인증합니다")
+    public ResponseEntity<BaseResponse<Void>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request.getEmail(), request.getCode());
         return ResponseEntity.ok(BaseResponse.success("이메일 인증이 완료되었습니다.", null));
     }
 

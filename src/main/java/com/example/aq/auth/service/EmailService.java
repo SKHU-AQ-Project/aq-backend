@@ -24,29 +24,28 @@ public class EmailService {
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    public void sendVerificationEmail(String toEmail, String token) {
+    public void sendVerificationEmail(String toEmail, String code) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromEmail, "AQ");
             helper.setTo(toEmail);
-            helper.setSubject("[AQ] 이메일 인증을 완료해주세요");
+            helper.setSubject("[AQ] 이메일 인증 코드");
 
-            String verificationUrl = frontendUrl + "/auth/verify-email?token=" + token;
-            String htmlContent = buildVerificationEmailHtml(verificationUrl);
+            String htmlContent = buildVerificationEmailHtml(code);
 
             helper.setText(htmlContent, true);
             mailSender.send(message);
 
-            log.info("인증 이메일 전송 완료: {}", toEmail);
+            log.info("인증 코드 이메일 전송 완료: {} (코드: {})", toEmail, code);
         } catch (MessagingException | UnsupportedEncodingException e) {
             log.error("인증 이메일 전송 실패: {}", toEmail, e);
             throw new RuntimeException("이메일 전송에 실패했습니다", e);
         }
     }
 
-    private String buildVerificationEmailHtml(String verificationUrl) {
+    private String buildVerificationEmailHtml(String code) {
         return """
             <!DOCTYPE html>
             <html>
@@ -57,8 +56,10 @@ public class EmailService {
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
                     .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
                     .content { padding: 20px; background-color: #f9f9f9; }
-                    .button { display: inline-block; padding: 12px 30px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .code-box { background-color: #fff; border: 3px solid #4CAF50; border-radius: 10px; padding: 20px; text-align: center; margin: 30px 0; }
+                    .code { font-size: 36px; font-weight: bold; color: #4CAF50; letter-spacing: 8px; font-family: 'Courier New', monospace; }
                     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+                    .warning { color: #ff6b6b; font-size: 14px; margin-top: 20px; }
                 </style>
             </head>
             <body>
@@ -69,13 +70,16 @@ public class EmailService {
                     <div class="content">
                         <p>안녕하세요,</p>
                         <p>AQ에 가입해주셔서 감사합니다.</p>
-                        <p>아래 버튼을 클릭하여 이메일 인증을 완료해주세요:</p>
-                        <div style="text-align: center;">
-                            <a href="%s" class="button">이메일 인증하기</a>
+                        <p>아래 인증 코드를 입력하여 이메일 인증을 완료해주세요:</p>
+                        <div class="code-box">
+                            <div class="code">%s</div>
                         </div>
-                        <p>또는 아래 링크를 복사하여 브라우저에 붙여넣으세요:</p>
-                        <p style="word-break: break-all; color: #666;">%s</p>
-                        <p>이 링크는 24시간 동안 유효합니다.</p>
+                        <p style="text-align: center; font-size: 14px; color: #666;">
+                            이 코드는 <strong>10분간</strong> 유효합니다.
+                        </p>
+                        <p class="warning">
+                            보안을 위해 이 코드를 다른 사람과 공유하지 마세요.
+                        </p>
                     </div>
                     <div class="footer">
                         <p>이 이메일은 자동으로 발송된 메일입니다.</p>
@@ -84,7 +88,7 @@ public class EmailService {
                 </div>
             </body>
             </html>
-            """.formatted(verificationUrl, verificationUrl);
+            """.formatted(code);
     }
 }
 

@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -32,19 +33,18 @@ public class AuthService {
     private final JwtTokenUtil jwtTokenUtil;
 
     private static final int TOKEN_EXPIRATION_HOURS = 24;
+    private static final int CODE_EXPIRATION_MINUTES = 10;
+    private static final SecureRandom random = new SecureRandom();
 
     public void signUp(SignUpRequest request) {
-        // 이메일 중복 확인
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다");
         }
 
-        // 닉네임 중복 확인
         if (userRepository.existsByNickname(request.getNickname())) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다");
         }
 
-        // 사용자 생성 (이메일 인증 전까지는 비활성화)
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -53,31 +53,33 @@ public class AuthService {
         user.disable(); // 이메일 인증 전까지 비활성화
         userRepository.save(user);
 
-        // 이메일 인증 토큰 생성
-        String token = UUID.randomUUID().toString();
+        String code = generateVerificationCode();
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
                 .email(request.getEmail())
-                .token(token)
-                .expiresAt(LocalDateTime.now().plusHours(TOKEN_EXPIRATION_HOURS))
+                .token(code)
+                .expiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES))
                 .build();
         tokenRepository.save(verificationToken);
 
-        // 인증 이메일 전송
-        emailService.sendVerificationEmail(request.getEmail(), token);
+        emailService.sendVerificationEmail(request.getEmail(), code);
 
         log.info("회원가입 완료: {}", request.getEmail());
     }
 
-    public void verifyEmail(String token) {
-        EmailVerificationToken verificationToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 인증 토큰입니다"));
+    public void verifyEmail(String email, String code) {
+        EmailVerificationToken verificationToken = tokenRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("인증 코드를 찾을 수 없습니다. 이메일을 확인해주세요."));
 
-        if (!verificationToken.isValid()) {
-            throw new IllegalArgumentException("만료되었거나 이미 사용된 인증 토큰입니다");
+        if (!verificationToken.getToken().equals(code)) {
+            throw new IllegalArgumentException("인증 코드가 일치하지 않습니다");
         }
 
-        User user = userRepository.findByEmail(verificationToken.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("사용자", "email", verificationToken.getEmail()));
+        if (!verificationToken.isValid()) {
+            throw new IllegalArgumentException("만료되었거나 이미 사용된 인증 코드입니다");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자", "email", email));
 
         verificationToken.verify();
         user.enable();
@@ -85,7 +87,13 @@ public class AuthService {
         tokenRepository.save(verificationToken);
         userRepository.save(user);
 
-        log.info("이메일 인증 완료: {}", verificationToken.getEmail());
+        log.info("이메일 인증 완료: {}", email);
+    }
+
+    private String generateVerificationCode() {
+        // 6자리 숫자 코드 생성
+        int code = 100000 + random.nextInt(900000);
+        return String.valueOf(code);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -112,8 +120,6 @@ public class AuthService {
     }
 
     public void logout(Long userId) {
-        // JWT는 stateless이므로 서버 측에서 특별한 처리가 필요 없지만,
-        // 필요시 리프레시 토큰 무효화 등을 구현할 수 있습니다
         log.info("로그아웃 완료: {}", userId);
     }
 
@@ -141,17 +147,16 @@ public class AuthService {
         // 기존 토큰 삭제
         tokenRepository.deleteByEmail(email);
 
-        // 새 토큰 생성
-        String token = UUID.randomUUID().toString();
+        // 새 인증 코드 생성
+        String code = generateVerificationCode();
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
                 .email(email)
-                .token(token)
-                .expiresAt(LocalDateTime.now().plusHours(TOKEN_EXPIRATION_HOURS))
+                .token(code)
+                .expiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES))
                 .build();
         tokenRepository.save(verificationToken);
 
-        // 인증 이메일 전송
-        emailService.sendVerificationEmail(email, token);
+        emailService.sendVerificationEmail(email, code);
 
         log.info("인증 이메일 재전송: {}", email);
     }
