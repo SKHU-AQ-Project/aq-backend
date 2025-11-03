@@ -1,41 +1,26 @@
-# Multi-stage build for Spring Boot Application
+# 1단계: 빌드
+FROM openjdk:17-jdk-slim AS builder
+WORKDIR /app
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle .
+COPY settings.gradle .
+COPY src src
+RUN chmod +x ./gradlew
+RUN ./gradlew build -x test
 
-# Stage 1: Build
-FROM gradle:8.5-jdk21 AS build
+# 2단계: 런타임
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-# Copy gradle files
-COPY build.gradle settings.gradle gradlew ./
-COPY gradle ./gradle
+# 타임존/UTF-8 세팅
+ENV TZ=Asia/Seoul
+ENV LANG=C.UTF-8
 
-# Download dependencies (cached layer)
-RUN ./gradlew dependencies --no-daemon || true
+# 빌드된 JAR 파일만 런타임 이미지로 복사합니다.
+COPY --from=builder /app/build/libs/*.jar app.jar
 
-# Copy source code
-COPY src ./src
-
-# Build application
-RUN ./gradlew clean build -x test --no-daemon
-
-# Stage 2: Runtime
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-
-# Add non-root user for security
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
-
-# Copy JAR from build stage
-COPY --from=build /app/build/libs/*.jar app.jar
-
-# Environment variables (will be overridden by docker-compose or runtime)
-ENV SPRING_PROFILES_ACTIVE=prod
-ENV SERVER_PORT=8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
-
+# HTTP 포트 노출
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

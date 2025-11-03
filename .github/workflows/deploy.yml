@@ -1,116 +1,100 @@
-name: Backend CI/CD
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/**'
+    branches: [ "main" ]
   pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/**'
+    branches: [ "main" ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: 'gradle'
-    
-    - name: Grant execute permission for gradlew
-      working-directory: ./backend
-      run: chmod +x gradlew
-    
-    - name: Build with Gradle
-      working-directory: ./backend
-      run: ./gradlew clean build -x test
-    
-    - name: Run tests
-      working-directory: ./backend
-      run: ./gradlew test
-    
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: backend-jar
-        path: backend/build/libs/*.jar
-        retention-days: 7
+      - name: Checkout source code
+        uses: actions/checkout@v3
 
-  docker-build:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    - name: Extract branch name
-      id: extract_branch
-      run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        push: true
-        tags: |
-          ${{ secrets.DOCKER_USERNAME }}/skhu-aq-backend:${{ steps.extract_branch.outputs.branch }}
-          ${{ secrets.DOCKER_USERNAME }}/skhu-aq-backend:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-  deploy-production:
-    needs: docker-build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Deploy to production
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.PROD_SERVER_HOST }}
-        username: ${{ secrets.PROD_SERVER_USERNAME }}
-        key: ${{ secrets.PROD_SERVER_SSH_KEY }}
-        port: ${{ secrets.PROD_SERVER_PORT }}
-        script: |
-          cd /app/skhu-aq-project
-          docker-compose pull backend
-          docker-compose up -d backend
-          docker system prune -f
+      - name: Create application.yml
+        run: |
+          mkdir -p src/main/resources
+          echo "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
 
-  deploy-development:
-    needs: docker-build
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build -x test
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    
     steps:
-    - name: Deploy to development
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.DEV_SERVER_HOST }}
-        username: ${{ secrets.DEV_SERVER_USERNAME }}
-        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
-        port: ${{ secrets.DEV_SERVER_PORT }}
-        script: |
-          cd /app/skhu-aq-project
-          docker-compose pull backend
-          docker-compose up -d backend
-          docker system prune -f
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Create application.yml
+        run: |
+          mkdir -p src/main/resources
+          echo "${{ secrets.APPLICATION_YML }}" > src/main/resources/application.yml
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        run: |
+          ECR_REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          ECR_REPOSITORY="${{ secrets.ECR_REPOSITORY }}"
+          IMAGE_TAG="${{ github.sha }}"
+
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Deploy to EC2 instance
+        uses: appleboy/ssh-action@master
+        with:
+          host:      ${{ secrets.EC2_HOST }}
+          username:  ${{ secrets.EC2_USERNAME }}
+          key:       ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws configure set region ${{ secrets.AWS_REGION }}
+            ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}
+            ECR_REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+            IMAGE_TAG="${{ github.sha }}"
+
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+            docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+            docker stop sikbbang-app || true
+            docker rm sikbbang-app || true
+
+            docker run -d --name sikbbang-app --restart unless-stopped \
+              -p 8080:8080 \
+              -e TZ=Asia/Seoul \
+              -e SPRING_PROFILES_ACTIVE=local \
+              -e DB_HOST="${{ secrets.DB_HOST }}" \
+              -e DB_PORT="${{ secrets.DB_PORT }}" \
+              -e DB_NAME="${{ secrets.DB_NAME }}" \
+              -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
+              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+              -e JWT_ACCESS_EXPIRATION="${{ secrets.JWT_ACCESS_EXPIRATION }}" \
+              -e JWT_ACCESS_HEADER="${{ secrets.JWT_ACCESS_HEADER }}" \
+              -e JWT_REFRESH_EXPIRATION="${{ secrets.JWT_REFRESH_EXPIRATION }}" \
+              -e JWT_REFRESH_HEADER="${{ secrets.JWT_REFRESH_HEADER }}" \
+              "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
