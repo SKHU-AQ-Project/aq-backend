@@ -10,7 +10,7 @@ RUN chmod +x ./gradlew
 RUN ./gradlew build -x test
 
 # 2단계: 런타임
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # 타임존/UTF-8 세팅
