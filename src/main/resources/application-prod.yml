@@ -1,6 +1,10 @@
 # 프로덕션 환경 설정
+server:
+    port: ${SERVER_PORT:8080}
+
 spring:
     datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
         username: ${DB_USERNAME}
         password: ${DB_PASSWORD}
@@ -19,6 +23,7 @@ spring:
             hibernate:
                 format_sql: false
         show-sql: false
+        open-in-view: false
 
     mail:
         host: smtp.gmail.com
@@ -39,6 +44,15 @@ spring:
 jwt:
     secret: ${JWT_SECRET}
     expiration: 86400000
+
+springdoc:
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui.html
+        url: /v3/api-docs
+        display-request-duration: true
+        groups-order: ASC
 
 app:
     frontend:
