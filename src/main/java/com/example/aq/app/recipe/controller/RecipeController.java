@@ -2,6 +2,7 @@ package com.example.aq.app.recipe.controller;
 
 import com.example.aq.common.dto.BaseResponse;
 import com.example.aq.common.dto.PageResponse;
+import com.example.aq.common.util.SecurityUtil;
 import com.example.aq.app.recipe.domain.RecipeCategory;
 import com.example.aq.app.recipe.dto.CreateRecipeRequest;
 import com.example.aq.app.recipe.dto.RecipeResponse;
@@ -130,37 +131,34 @@ public class RecipeController {
     }
 
     @PostMapping
-    @Operation(summary = "레시피 작성", description = "새로운 레시피를 작성합니다")
+    @Operation(summary = "레시피 작성", description = "새로운 레시피를 작성합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<RecipeResponse>> createRecipe(
             @Valid @RequestBody CreateRecipeRequest request) {
         
-        // TODO: 현재 로그인한 사용자 ID를 가져오는 로직 구현 필요
-        Long currentUserId = 1L; // 임시 값
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         
         RecipeResponse response = recipeService.createRecipe(request, currentUserId);
         return ResponseEntity.ok(BaseResponse.success("레시피가 성공적으로 작성되었습니다", response));
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "레시피 수정", description = "기존 레시피를 수정합니다")
+    @Operation(summary = "레시피 수정", description = "기존 레시피를 수정합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<RecipeResponse>> updateRecipe(
             @Parameter(description = "레시피 ID") @PathVariable Long id,
             @Valid @RequestBody UpdateRecipeRequest request) {
         
-        // TODO: 현재 로그인한 사용자 ID를 가져오는 로직 구현 필요
-        Long currentUserId = 1L; // 임시 값
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         
         RecipeResponse response = recipeService.updateRecipe(id, request, currentUserId);
         return ResponseEntity.ok(BaseResponse.success("레시피가 성공적으로 수정되었습니다", response));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "레시피 삭제", description = "레시피를 삭제합니다")
+    @Operation(summary = "레시피 삭제", description = "레시피를 삭제합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<Void>> deleteRecipe(
             @Parameter(description = "레시피 ID") @PathVariable Long id) {
         
-        // TODO: 현재 로그인한 사용자 ID를 가져오는 로직 구현 필요
-        Long currentUserId = 1L; // 임시 값
+        Long currentUserId = SecurityUtil.getCurrentUserId();
         
         recipeService.deleteRecipe(id, currentUserId);
         return ResponseEntity.ok(BaseResponse.success("레시피가 성공적으로 삭제되었습니다", null));
