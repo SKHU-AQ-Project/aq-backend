@@ -9,7 +9,7 @@ public enum LikeType {
     REVIEW("리뷰"),
     RECIPE("레시피"),
     COMMENT("댓글"),
-    MODEL_PROPOSAL("모델 제안");
+    PROPOSAL("모델 제안");
 
     private final String description;
 }
