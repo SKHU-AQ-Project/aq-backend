@@ -132,6 +132,7 @@ public class InteractionService {
             recipe.incrementLikeCount();
             recipeRepository.save(recipe);
         }
+        // MODEL_PROPOSAL의 경우 ModelProposalService에서 직접 처리
     }
 
     private void decrementLikeCount(Long targetId, LikeType targetType) {
@@ -146,6 +147,7 @@ public class InteractionService {
             recipe.decrementLikeCount();
             recipeRepository.save(recipe);
         }
+        // MODEL_PROPOSAL의 경우 ModelProposalService에서 직접 처리
     }
 
     private void incrementBookmarkCount(Long targetId, BookmarkType targetType) {

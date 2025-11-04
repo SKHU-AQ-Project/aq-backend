@@ -42,6 +42,9 @@ public class SecurityConfig {
                                 "/api/recipes/search", "/api/recipes/category/{category}", 
                                 "/api/recipes/user/{userId}", "/api/recipes/difficulty/{difficulty}").permitAll()
                 .requestMatchers("/api/models/**").permitAll()
+                .requestMatchers("/api/model-proposals/pending", "/api/model-proposals/approved", 
+                                "/api/model-proposals/top", "/api/model-proposals/{id}", 
+                                "/api/model-proposals/search").permitAll()
                 .requestMatchers("/api/users/{id}", "/api/users/email/{email}", 
                                 "/api/users/nickname/{nickname}").permitAll()
                 // 인증 API (모두 공개)
