@@ -35,7 +35,7 @@ public class ModelProposalService {
     private final InteractionService interactionService;
 
     @Value("${app.model.proposal.auto-approve-threshold:10}")
-    private Integer autoApproveThreshold; // 자동 승인을 위한 최소 추천수 (기본값: 10)
+    private Integer autoApproveThreshold;
 
     // 모델 제안 작성
     @Transactional
@@ -43,7 +43,6 @@ public class ModelProposalService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자", "id", userId));
 
-        // 중복 체크
         Optional<ModelProposal> existingProposal = proposalRepository.findByNameAndProvider(
                 request.getName(), request.getProvider());
         if (existingProposal.isPresent() && existingProposal.get().isPending()) {
@@ -84,9 +83,14 @@ public class ModelProposalService {
         Page<ModelProposal> proposals = proposalRepository.findByStatusOrderByLikeCountDesc(
                 ModelProposalStatus.PENDING, pageable);
 
+        proposals.getContent().forEach(proposal -> {
+            proposal.getCapabilities().size(); // 컬렉션 초기화
+            proposal.getUser().getNickname(); // User 초기화
+        });
+
         Page<ModelProposalResponse> response = proposals.map(proposal -> {
             Boolean isLiked = currentUserId != null && 
-                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.MODEL_PROPOSAL);
+                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.PROPOSAL);
             return ModelProposalResponse.of(proposal, isLiked);
         });
 
@@ -99,9 +103,14 @@ public class ModelProposalService {
         Page<ModelProposal> proposals = proposalRepository.findByStatusOrderByCreatedAtDesc(
                 ModelProposalStatus.APPROVED, pageable);
 
+        proposals.getContent().forEach(proposal -> {
+            proposal.getCapabilities().size(); // 컬렉션 초기화
+            proposal.getUser().getNickname(); // User 초기화
+        });
+
         Page<ModelProposalResponse> response = proposals.map(proposal -> {
             Boolean isLiked = currentUserId != null && 
-                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.MODEL_PROPOSAL);
+                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.PROPOSAL);
             return ModelProposalResponse.of(proposal, isLiked);
         });
 
@@ -114,9 +123,15 @@ public class ModelProposalService {
         Page<ModelProposal> proposals = proposalRepository.findPendingWithMinLikeCount(
                 ModelProposalStatus.PENDING, 0, pageable);
 
+        // capabilities 컬렉션을 미리 초기화하여 LazyInitializationException 방지
+        proposals.getContent().forEach(proposal -> {
+            proposal.getCapabilities().size(); // 컬렉션 초기화
+            proposal.getUser().getNickname(); // User 초기화
+        });
+
         Page<ModelProposalResponse> response = proposals.map(proposal -> {
             Boolean isLiked = currentUserId != null && 
-                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.MODEL_PROPOSAL);
+                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.PROPOSAL);
             return ModelProposalResponse.of(proposal, isLiked);
         });
 
@@ -129,8 +144,12 @@ public class ModelProposalService {
         ModelProposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new ResourceNotFoundException("모델 제안", "id", proposalId));
 
+        // capabilities 컬렉션을 미리 초기화하여 LazyInitializationException 방지
+        proposal.getCapabilities().size(); // 컬렉션 초기화
+        proposal.getUser().getNickname(); // User 초기화
+
         Boolean isLiked = currentUserId != null && 
-                interactionService.isLiked(currentUserId, proposalId, LikeType.MODEL_PROPOSAL);
+                interactionService.isLiked(currentUserId, proposalId, LikeType.PROPOSAL);
 
         return ModelProposalResponse.of(proposal, isLiked);
     }
@@ -141,7 +160,11 @@ public class ModelProposalService {
         ModelProposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new ResourceNotFoundException("모델 제안", "id", proposalId));
 
-        boolean isLiked = interactionService.toggleLike(userId, proposalId, LikeType.MODEL_PROPOSAL);
+        // capabilities 컬렉션을 미리 초기화하여 LazyInitializationException 방지
+        proposal.getCapabilities().size(); // 컬렉션 초기화
+        proposal.getUser().getNickname(); // User 초기화
+
+        boolean isLiked = interactionService.toggleLike(userId, proposalId, LikeType.PROPOSAL);
 
         // 좋아요 수 업데이트
         if (isLiked) {
@@ -156,6 +179,9 @@ public class ModelProposalService {
             approveProposal(userId, proposalId, true);
             proposal = proposalRepository.findById(proposalId)
                     .orElseThrow(() -> new ResourceNotFoundException("모델 제안", "id", proposalId));
+            // 재조회 후에도 초기화 필요
+            proposal.getCapabilities().size();
+            proposal.getUser().getNickname();
         }
 
         return ModelProposalResponse.of(proposal, isLiked);
@@ -173,6 +199,10 @@ public class ModelProposalService {
 
         ModelProposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new ResourceNotFoundException("모델 제안", "id", proposalId));
+
+        // capabilities 컬렉션을 미리 초기화하여 LazyInitializationException 방지
+        proposal.getCapabilities().size(); // 컬렉션 초기화
+        proposal.getUser().getNickname(); // User 초기화
 
         if (!proposal.isPending()) {
             throw new IllegalArgumentException("이미 처리된 제안입니다");
@@ -202,7 +232,7 @@ public class ModelProposalService {
 
         log.info("모델 제안이 승인되었습니다: {} -> AIModel {}", proposalId, model.getId());
 
-        Boolean isLiked = interactionService.isLiked(adminId, proposalId, LikeType.MODEL_PROPOSAL);
+        Boolean isLiked = interactionService.isLiked(adminId, proposalId, LikeType.PROPOSAL);
         return ModelProposalResponse.of(proposal, isLiked);
     }
 
@@ -219,6 +249,10 @@ public class ModelProposalService {
         ModelProposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new ResourceNotFoundException("모델 제안", "id", proposalId));
 
+        // capabilities 컬렉션을 미리 초기화하여 LazyInitializationException 방지
+        proposal.getCapabilities().size(); // 컬렉션 초기화
+        proposal.getUser().getNickname(); // User 초기화
+
         if (!proposal.isPending()) {
             throw new IllegalArgumentException("이미 처리된 제안입니다");
         }
@@ -228,7 +262,7 @@ public class ModelProposalService {
 
         log.info("모델 제안이 거절되었습니다: {} - 이유: {}", proposalId, reason);
 
-        Boolean isLiked = interactionService.isLiked(adminId, proposalId, LikeType.MODEL_PROPOSAL);
+        Boolean isLiked = interactionService.isLiked(adminId, proposalId, LikeType.PROPOSAL);
         return ModelProposalResponse.of(proposal, isLiked);
     }
 
@@ -327,9 +361,15 @@ public class ModelProposalService {
         Page<ModelProposal> proposals = proposalRepository.searchByKeyword(
                 ModelProposalStatus.PENDING, keyword, pageable);
 
+        // capabilities 컬렉션을 미리 초기화하여 LazyInitializationException 방지
+        proposals.getContent().forEach(proposal -> {
+            proposal.getCapabilities().size(); // 컬렉션 초기화
+            proposal.getUser().getNickname(); // User 초기화
+        });
+
         Page<ModelProposalResponse> response = proposals.map(proposal -> {
             Boolean isLiked = currentUserId != null && 
-                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.MODEL_PROPOSAL);
+                    interactionService.isLiked(currentUserId, proposal.getId(), LikeType.PROPOSAL);
             return ModelProposalResponse.of(proposal, isLiked);
         });
 
