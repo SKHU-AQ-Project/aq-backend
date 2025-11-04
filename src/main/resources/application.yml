@@ -58,3 +58,6 @@ jwt:
 app:
     frontend:
         url: ${FRONTEND_URL:http://localhost:3000}
+    model:
+        proposal:
+            auto-approve-threshold: ${MODEL_PROPOSAL_AUTO_APPROVE_THRESHOLD:10} # 추천수 기준 자동 승인 임계값

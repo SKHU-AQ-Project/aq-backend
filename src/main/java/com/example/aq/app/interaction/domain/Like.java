@@ -35,7 +35,7 @@ public class Like {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", nullable = false)
+    @Column(name = "target_type", nullable = false, length = 20)
     private LikeType targetType;
 
     @CreatedDate

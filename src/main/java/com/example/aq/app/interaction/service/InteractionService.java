@@ -40,7 +40,6 @@ public class InteractionService {
         boolean isLiked = likeRepository.existsByUserAndTargetIdAndTargetType(user, targetId, targetType);
 
         if (isLiked) {
-            // 좋아요 취소
             Like like = likeRepository.findByUserAndTargetIdAndTargetType(user, targetId, targetType)
                     .orElseThrow(() -> new RuntimeException("좋아요를 찾을 수 없습니다"));
             likeRepository.delete(like);
@@ -48,7 +47,6 @@ public class InteractionService {
             log.info("좋아요가 취소되었습니다: {} {} by {}", targetType, targetId, userId);
             return false;
         } else {
-            // 좋아요 추가
             Like like = Like.builder()
                     .user(user)
                     .targetId(targetId)
