@@ -70,6 +70,17 @@ public class InteractionService {
     }
 
     public Long getLikeCount(Long targetId, LikeType targetType) {
+        // Review나 Recipe 엔티티의 likeCount 필드 값을 반환
+        if (targetType == LikeType.REVIEW) {
+            Review review = reviewRepository.findById(targetId)
+                    .orElseThrow(() -> new RuntimeException("리뷰를 찾을 수 없습니다"));
+            return review.getLikeCount().longValue();
+        } else if (targetType == LikeType.RECIPE) {
+            Recipe recipe = recipeRepository.findById(targetId)
+                    .orElseThrow(() -> new RuntimeException("레시피를 찾을 수 없습니다"));
+            return recipe.getLikeCount().longValue();
+        }
+        // 다른 타입의 경우 Like 테이블에서 카운트
         return likeRepository.countByTargetIdAndTargetType(targetId, targetType);
     }
 
@@ -114,6 +125,13 @@ public class InteractionService {
     }
 
     public Long getBookmarkCount(Long targetId, BookmarkType targetType) {
+        // Recipe 엔티티의 bookmarkCount 필드 값을 반환
+        if (targetType == BookmarkType.RECIPE) {
+            Recipe recipe = recipeRepository.findById(targetId)
+                    .orElseThrow(() -> new RuntimeException("레시피를 찾을 수 없습니다"));
+            return recipe.getBookmarkCount().longValue();
+        }
+        // 다른 타입의 경우 Bookmark 테이블에서 카운트
         return bookmarkRepository.countByTargetIdAndTargetType(targetId, targetType);
     }
 
