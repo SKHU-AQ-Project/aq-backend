@@ -134,6 +134,10 @@ public class AIModel {
         this.reviewCount = Math.max(0, this.reviewCount - 1);
     }
 
+    public void setReviewCount(Integer reviewCount) {
+        this.reviewCount = reviewCount != null ? Math.max(0, reviewCount) : 0;
+    }
+
     public void activate() {
         this.active = true;
     }

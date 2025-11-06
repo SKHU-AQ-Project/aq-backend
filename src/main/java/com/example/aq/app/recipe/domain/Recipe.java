@@ -9,6 +9,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -65,14 +67,16 @@ public class Recipe {
     @Column(nullable = false)
     private RecipeCategory category;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "recipe_tags", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "tag")
+    @Fetch(FetchMode.SUBSELECT)
     private List<String> tags = new ArrayList<>();
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "recipe_suitable_models", joinColumns = @JoinColumn(name = "recipe_id"))
     @Column(name = "model_name")
+    @Fetch(FetchMode.SUBSELECT)
     private List<String> suitableModels = new ArrayList<>();
 
     @Column(name = "difficulty_level", nullable = false)

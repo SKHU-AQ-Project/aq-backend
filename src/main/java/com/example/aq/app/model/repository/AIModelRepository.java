@@ -4,6 +4,7 @@ import com.example.aq.app.model.domain.AIModel;
 import com.example.aq.app.model.domain.ModelCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,29 +16,42 @@ import java.util.Optional;
 @Repository
 public interface AIModelRepository extends JpaRepository<AIModel, Long> {
     
-    Optional<AIModel> findByNameAndProvider(String name, String provider);
+    @EntityGraph(attributePaths = {"capabilities"})
+    Optional<AIModel> findById(Long id);
     
+    @EntityGraph(attributePaths = {"capabilities"})
+    @Query("SELECT m FROM AIModel m WHERE m.name = :name AND m.provider = :provider")
+    Optional<AIModel> findByNameAndProvider(@Param("name") String name, @Param("provider") String provider);
+    
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true")
     List<AIModel> findAllActive();
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true")
     Page<AIModel> findAllActive(Pageable pageable);
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true AND m.category = :category")
     Page<AIModel> findByCategory(@Param("category") ModelCategory category, Pageable pageable);
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true AND m.provider = :provider")
     Page<AIModel> findByProvider(@Param("provider") String provider, Pageable pageable);
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true AND m.hasFreeTier = true")
     Page<AIModel> findFreeTierModels(Pageable pageable);
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true ORDER BY m.averageRating DESC NULLS LAST")
     Page<AIModel> findTopRatedModels(Pageable pageable);
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true ORDER BY m.reviewCount DESC")
     Page<AIModel> findMostReviewedModels(Pageable pageable);
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true AND " +
            "(LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(m.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -47,6 +61,7 @@ public interface AIModelRepository extends JpaRepository<AIModel, Long> {
     @Query("SELECT DISTINCT m.provider FROM AIModel m WHERE m.active = true ORDER BY m.provider")
     List<String> findAllProviders();
     
+    @EntityGraph(attributePaths = {"capabilities"})
     @Query("SELECT m FROM AIModel m WHERE m.active = true AND m.capabilities LIKE %:capability%")
     Page<AIModel> findByCapability(@Param("capability") String capability, Pageable pageable);
 }

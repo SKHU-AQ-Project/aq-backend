@@ -134,5 +134,21 @@ public class ModelController {
         ModelResponse response = modelService.getModel(id);
         return ResponseEntity.ok(BaseResponse.success(response));
     }
+
+    @PostMapping("/{id}/sync-review-count")
+    @Operation(summary = "리뷰 카운트 동기화", description = "모델의 리뷰 카운트를 실제 리뷰 개수와 동기화합니다")
+    public ResponseEntity<BaseResponse<Void>> syncReviewCount(
+            @Parameter(description = "모델 ID") @PathVariable Long id) {
+        
+        modelService.syncReviewCount(id);
+        return ResponseEntity.ok(BaseResponse.success("리뷰 카운트가 동기화되었습니다", null));
+    }
+
+    @PostMapping("/sync-all-review-counts")
+    @Operation(summary = "전체 리뷰 카운트 동기화", description = "모든 모델의 리뷰 카운트를 실제 리뷰 개수와 동기화합니다")
+    public ResponseEntity<BaseResponse<Void>> syncAllReviewCounts() {
+        modelService.syncAllReviewCounts();
+        return ResponseEntity.ok(BaseResponse.success("모든 모델의 리뷰 카운트가 동기화되었습니다", null));
+    }
 }
 

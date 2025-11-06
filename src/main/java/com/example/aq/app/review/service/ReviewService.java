@@ -35,31 +35,43 @@ public class ReviewService {
 
     public PageResponse<ReviewResponse> getReviews(Pageable pageable) {
         Page<Review> reviews = reviewRepository.findLatestReviews(pageable);
+        // Lazy 컬렉션 초기화
+        reviews.forEach(review -> review.getTags().size());
         return PageResponse.of(reviews.map(ReviewResponse::of));
     }
 
     public PageResponse<ReviewResponse> getPopularReviews(Pageable pageable) {
         Page<Review> reviews = reviewRepository.findPopularReviews(pageable);
+        // Lazy 컬렉션 초기화
+        reviews.forEach(review -> review.getTags().size());
         return PageResponse.of(reviews.map(ReviewResponse::of));
     }
 
     public PageResponse<ReviewResponse> getTopRatedReviews(Pageable pageable) {
         Page<Review> reviews = reviewRepository.findTopRatedReviews(pageable);
+        // Lazy 컬렉션 초기화
+        reviews.forEach(review -> review.getTags().size());
         return PageResponse.of(reviews.map(ReviewResponse::of));
     }
 
     public PageResponse<ReviewResponse> searchReviews(String keyword, Pageable pageable) {
         Page<Review> reviews = reviewRepository.searchReviews(keyword, pageable);
+        // Lazy 컬렉션 초기화
+        reviews.forEach(review -> review.getTags().size());
         return PageResponse.of(reviews.map(ReviewResponse::of));
     }
 
     public PageResponse<ReviewResponse> getReviewsByModel(Long modelId, Pageable pageable) {
         Page<Review> reviews = reviewRepository.findByModelId(modelId, pageable);
+        // Lazy 컬렉션 초기화
+        reviews.forEach(review -> review.getTags().size());
         return PageResponse.of(reviews.map(ReviewResponse::of));
     }
 
     public PageResponse<ReviewResponse> getReviewsByAuthor(Long authorId, Pageable pageable) {
         Page<Review> reviews = reviewRepository.findByAuthorId(authorId, pageable);
+        // Lazy 컬렉션 초기화
+        reviews.forEach(review -> review.getTags().size());
         return PageResponse.of(reviews.map(ReviewResponse::of));
     }
 
@@ -67,6 +79,9 @@ public class ReviewService {
     public ReviewResponse getReview(Long id) {
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("리뷰", "id", id));
+        
+        // Lazy 컬렉션 초기화
+        review.getTags().size();
         
         // 조회수 증가
         review.incrementViewCount();

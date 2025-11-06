@@ -125,6 +125,18 @@ public class ModelProposalController {
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
+    @GetMapping("/my")
+    @Operation(summary = "내 제안 목록 조회", description = "현재 사용자가 작성한 모델 제안 목록을 조회합니다")
+    public ResponseEntity<BaseResponse<PageResponse<ModelProposalResponse>>> getMyProposals(
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size) {
+        
+        Long userId = SecurityUtil.getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        PageResponse<ModelProposalResponse> response = proposalService.getMyProposals(userId, pageable);
+        return ResponseEntity.ok(BaseResponse.success(response));
+    }
+
     @PostMapping("/update-requests")
     @Operation(summary = "모델 수정 요청", description = "등록된 모델의 정보 수정을 요청합니다")
     public ResponseEntity<BaseResponse<ModelUpdateRequestResponse>> createUpdateRequest(

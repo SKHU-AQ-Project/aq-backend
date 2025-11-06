@@ -375,5 +375,28 @@ public class ModelProposalService {
 
         return PageResponse.of(response);
     }
+
+    // 내 제안 조회
+    @Transactional(readOnly = true)
+    public PageResponse<ModelProposalResponse> getMyProposals(Long userId, Pageable pageable) {
+        // 사용자 존재 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자", "id", userId));
+
+        Page<ModelProposal> proposals = proposalRepository.findByUserId(userId, pageable);
+
+        // capabilities 컬렉션을 미리 초기화하여 LazyInitializationException 방지
+        proposals.getContent().forEach(proposal -> {
+            proposal.getCapabilities().size(); // 컬렉션 초기화
+            proposal.getUser().getNickname(); // User 초기화
+        });
+
+        Page<ModelProposalResponse> response = proposals.map(proposal -> {
+            Boolean isLiked = interactionService.isLiked(userId, proposal.getId(), LikeType.PROPOSAL);
+            return ModelProposalResponse.of(proposal, isLiked);
+        });
+
+        return PageResponse.of(response);
+    }
 }
 
