@@ -25,70 +25,10 @@ public class ModelService {
     private final AIModelRepository aiModelRepository;
     private final ReviewRepository reviewRepository;
 
-    public PageResponse<ModelResponse> getModels(Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.findAllActive(pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public PageResponse<ModelResponse> getTopRatedModels(Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.findTopRatedModels(pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public PageResponse<ModelResponse> getMostReviewedModels(Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.findMostReviewedModels(pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public PageResponse<ModelResponse> getFreeTierModels(Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.findFreeTierModels(pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public PageResponse<ModelResponse> searchModels(String keyword, Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.searchModels(keyword, pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public PageResponse<ModelResponse> getModelsByCategory(ModelCategory category, Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.findByCategory(category, pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public PageResponse<ModelResponse> getModelsByProvider(String provider, Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.findByProvider(provider, pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public PageResponse<ModelResponse> getModelsByCapability(String capability, Pageable pageable) {
-        Page<AIModel> models = aiModelRepository.findByCapability(capability, pageable);
-        // Lazy 컬렉션 초기화
-        models.forEach(model -> model.getCapabilities().size());
-        return PageResponse.of(models.map(ModelResponse::of));
-    }
-
-    public ModelResponse getModel(Long id) {
-        AIModel model = aiModelRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("AI 모델", "id", id));
-        
-        if (!model.getActive()) {
-            throw new ResourceNotFoundException("AI 모델", "id", id);
-        }
-        
+    /**
+     * 모델을 ModelResponse로 변환하면서 실제 리뷰 개수를 계산합니다.
+     */
+    private ModelResponse toModelResponseWithActualReviewCount(AIModel model) {
         // Lazy 컬렉션 초기화
         model.getCapabilities().size();
         
@@ -97,11 +37,10 @@ public class ModelService {
         
         // 실제 개수와 저장된 개수가 다르면 로그 출력
         if (!actualReviewCount.equals(model.getReviewCount().longValue())) {
-            log.warn("모델 {}의 reviewCount 불일치: DB={}, 실제={}", 
+            log.debug("모델 {}의 reviewCount 불일치: DB={}, 실제={}", 
                     model.getId(), model.getReviewCount(), actualReviewCount);
         }
         
-        // ModelResponse 생성 시 실제 리뷰 개수 사용
         return ModelResponse.builder()
                 .id(model.getId())
                 .name(model.getName())
@@ -116,10 +55,61 @@ public class ModelService {
                 .apiEndpoint(model.getApiEndpoint())
                 .documentationUrl(model.getDocumentationUrl())
                 .averageRating(model.getAverageRating())
-                .reviewCount(actualReviewCount.intValue())  // 실제 리뷰 개수 사용
+                .reviewCount(actualReviewCount.intValue())
                 .createdAt(model.getCreatedAt())
                 .updatedAt(model.getUpdatedAt())
                 .build();
+    }
+
+    public PageResponse<ModelResponse> getModels(Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.findAllActive(pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public PageResponse<ModelResponse> getTopRatedModels(Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.findTopRatedModels(pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public PageResponse<ModelResponse> getMostReviewedModels(Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.findMostReviewedModels(pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public PageResponse<ModelResponse> getFreeTierModels(Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.findFreeTierModels(pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public PageResponse<ModelResponse> searchModels(String keyword, Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.searchModels(keyword, pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public PageResponse<ModelResponse> getModelsByCategory(ModelCategory category, Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.findByCategory(category, pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public PageResponse<ModelResponse> getModelsByProvider(String provider, Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.findByProvider(provider, pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public PageResponse<ModelResponse> getModelsByCapability(String capability, Pageable pageable) {
+        Page<AIModel> models = aiModelRepository.findByCapability(capability, pageable);
+        return PageResponse.of(models.map(this::toModelResponseWithActualReviewCount));
+    }
+
+    public ModelResponse getModel(Long id) {
+        AIModel model = aiModelRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("AI 모델", "id", id));
+        
+        if (!model.getActive()) {
+            throw new ResourceNotFoundException("AI 모델", "id", id);
+        }
+        
+        return toModelResponseWithActualReviewCount(model);
     }
 
     public List<String> getAllProviders() {
