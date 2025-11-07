@@ -3,6 +3,7 @@ package com.example.aq.app.recipe.service;
 import com.example.aq.common.dto.PageResponse;
 import com.example.aq.common.exception.ResourceNotFoundException;
 import com.example.aq.common.exception.UnauthorizedException;
+import com.example.aq.common.util.SecurityUtil;
 import com.example.aq.app.recipe.domain.Recipe;
 import com.example.aq.app.recipe.domain.RecipeCategory;
 import com.example.aq.app.recipe.dto.CreateRecipeRequest;
@@ -11,6 +12,10 @@ import com.example.aq.app.recipe.dto.UpdateRecipeRequest;
 import com.example.aq.app.recipe.repository.RecipeRepository;
 import com.example.aq.app.user.domain.User;
 import com.example.aq.app.user.repository.UserRepository;
+import com.example.aq.app.interaction.repository.LikeRepository;
+import com.example.aq.app.interaction.repository.BookmarkRepository;
+import com.example.aq.app.interaction.domain.LikeType;
+import com.example.aq.app.interaction.domain.BookmarkType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,6 +31,8 @@ public class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
+    private final BookmarkRepository bookmarkRepository;
 
     public PageResponse<RecipeResponse> getRecipes(Pageable pageable) {
         Page<Recipe> recipes = recipeRepository.findLatestRecipes(pageable);
@@ -123,7 +130,26 @@ public class RecipeService {
         // 조회수 증가
         recipe.incrementViewCount();
         
-        return RecipeResponse.of(recipe);
+        // 현재 사용자의 좋아요/북마크 상태 확인
+        boolean isLiked = false;
+        boolean isBookmarked = false;
+        
+        try {
+            Long currentUserId = SecurityUtil.getCurrentUserId();
+            User currentUser = userRepository.findById(currentUserId).orElse(null);
+            
+            if (currentUser != null) {
+                isLiked = likeRepository.existsByUserAndTargetIdAndTargetType(
+                    currentUser, id, LikeType.RECIPE);
+                isBookmarked = bookmarkRepository.existsByUserAndTargetIdAndTargetType(
+                    currentUser, id, BookmarkType.RECIPE);
+            }
+        } catch (Exception e) {
+            // 비로그인 사용자의 경우 무시
+            log.debug("User not authenticated, returning default interaction states");
+        }
+        
+        return RecipeResponse.of(recipe, isLiked, isBookmarked);
     }
 
     @Transactional
