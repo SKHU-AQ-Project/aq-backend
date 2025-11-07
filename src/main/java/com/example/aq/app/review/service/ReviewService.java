@@ -3,6 +3,7 @@ package com.example.aq.app.review.service;
 import com.example.aq.common.dto.PageResponse;
 import com.example.aq.common.exception.ResourceNotFoundException;
 import com.example.aq.common.exception.UnauthorizedException;
+import com.example.aq.common.util.SecurityUtil;
 import com.example.aq.app.model.domain.AIModel;
 import com.example.aq.app.model.repository.AIModelRepository;
 import com.example.aq.app.review.domain.Review;
@@ -12,6 +13,10 @@ import com.example.aq.app.user.repository.UserRepository;
 import com.example.aq.app.review.dto.CreateReviewRequest;
 import com.example.aq.app.review.dto.ReviewResponse;
 import com.example.aq.app.review.dto.UpdateReviewRequest;
+import com.example.aq.app.interaction.repository.LikeRepository;
+import com.example.aq.app.interaction.repository.BookmarkRepository;
+import com.example.aq.app.interaction.domain.LikeType;
+import com.example.aq.app.interaction.domain.BookmarkType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +37,8 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final AIModelRepository aiModelRepository;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
+    private final BookmarkRepository bookmarkRepository;
 
     public PageResponse<ReviewResponse> getReviews(Pageable pageable) {
         Page<Review> reviews = reviewRepository.findLatestReviews(pageable);
@@ -87,7 +94,26 @@ public class ReviewService {
         review.incrementViewCount();
         // save 호출 제거 - @Transactional로 자동 반영
         
-        return ReviewResponse.of(review);
+        // 현재 사용자의 좋아요/북마크 상태 확인
+        boolean isLiked = false;
+        boolean isBookmarked = false;
+        
+        try {
+            Long currentUserId = SecurityUtil.getCurrentUserId();
+            User currentUser = userRepository.findById(currentUserId).orElse(null);
+            
+            if (currentUser != null) {
+                isLiked = likeRepository.existsByUserAndTargetIdAndTargetType(
+                    currentUser, id, LikeType.REVIEW);
+                isBookmarked = bookmarkRepository.existsByUserAndTargetIdAndTargetType(
+                    currentUser, id, BookmarkType.REVIEW);
+            }
+        } catch (Exception e) {
+            // 비로그인 사용자의 경우 무시
+            log.debug("User not authenticated, returning default interaction states");
+        }
+        
+        return ReviewResponse.of(review, isLiked, isBookmarked);
     }
 
     @Transactional
