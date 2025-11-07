@@ -47,11 +47,11 @@ public class FollowService {
                 .orElseThrow(() -> new ResourceNotFoundException("팔로우할 사용자를 찾을 수 없습니다"));
 
         // 이미 팔로우 중인지 확인
-        boolean exists = followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUserId);
+        boolean exists = followRepository.existsByFollower_IdAndFollowing_Id(currentUserId, targetUserId);
 
         if (exists) {
             // 언팔로우
-            Follow follow = followRepository.findByFollowerIdAndFollowingId(currentUserId, targetUserId)
+            Follow follow = followRepository.findByFollower_IdAndFollowing_Id(currentUserId, targetUserId)
                     .orElseThrow(() -> new ResourceNotFoundException("팔로우 관계를 찾을 수 없습니다"));
             followRepository.delete(follow);
             log.info("User {} unfollowed user {}", currentUserId, targetUserId);
@@ -124,12 +124,12 @@ public class FollowService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
 
-        long followerCount = followRepository.countByFollowingId(userId);
-        long followingCount = followRepository.countByFollowerId(userId);
+        long followerCount = followRepository.countByFollowing_Id(userId);
+        long followingCount = followRepository.countByFollower_Id(userId);
         
         Boolean isFollowing = null;
         if (currentUserId != null && !currentUserId.equals(userId)) {
-            isFollowing = followRepository.existsByFollowerIdAndFollowingId(currentUserId, userId);
+            isFollowing = followRepository.existsByFollower_IdAndFollowing_Id(currentUserId, userId);
         }
 
         return FollowStatsResponse.of(userId, followerCount, followingCount, isFollowing);
@@ -139,7 +139,7 @@ public class FollowService {
      * 팔로우 여부 확인
      */
     public boolean isFollowing(Long followerId, Long followingId) {
-        return followRepository.existsByFollowerIdAndFollowingId(followerId, followingId);
+        return followRepository.existsByFollower_IdAndFollowing_Id(followerId, followingId);
     }
 
     /**

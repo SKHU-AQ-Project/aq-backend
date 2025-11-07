@@ -15,10 +15,10 @@ import java.util.Optional;
 public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     // 팔로우 관계 존재 여부 확인
-    boolean existsByFollowerIdAndFollowingId(Long followerId, Long followingId);
+    boolean existsByFollower_IdAndFollowing_Id(Long followerId, Long followingId);
 
     // 특정 팔로우 관계 조회
-    Optional<Follow> findByFollowerIdAndFollowingId(Long followerId, Long followingId);
+    Optional<Follow> findByFollower_IdAndFollowing_Id(Long followerId, Long followingId);
 
     // 팔로워 목록 조회 (페이지네이션)
     @Query("SELECT f FROM Follow f JOIN FETCH f.follower WHERE f.following.id = :userId")
@@ -29,15 +29,15 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     Page<Follow> findFollowingByUserId(@Param("userId") Long userId, Pageable pageable);
 
     // 팔로워 수 카운트
-    long countByFollowingId(Long userId);
+    long countByFollowing_Id(Long userId);
 
     // 팔로잉 수 카운트
-    long countByFollowerId(Long userId);
+    long countByFollower_Id(Long userId);
 
     // 특정 사용자의 모든 팔로워 삭제 (사용자 삭제 시)
-    void deleteByFollowerId(Long userId);
+    void deleteByFollower_Id(Long userId);
 
-    void deleteByFollowingId(Long userId);
+    void deleteByFollowing_Id(Long userId);
 
     // 팔로잉하는 사용자 ID 목록 조회
     @Query("SELECT f.following.id FROM Follow f WHERE f.follower.id = :userId")

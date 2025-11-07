@@ -74,6 +74,10 @@ public class RecipeResponse {
     }
 
     public static RecipeResponse of(Recipe recipe) {
+        return of(recipe, false, false);
+    }
+
+    public static RecipeResponse of(Recipe recipe, boolean isLiked, boolean isBookmarked) {
         return RecipeResponse.builder()
                 .id(recipe.getId())
                 .authorId(recipe.getAuthor().getId())
@@ -96,8 +100,8 @@ public class RecipeResponse {
                 .useCount(recipe.getUseCount())
                 .isFeatured(recipe.getIsFeatured())
                 .isVerified(recipe.getIsVerified())
-                .isLiked(false) // TODO: 실제 사용자 좋아요 상태 확인
-                .isBookmarked(false) // TODO: 실제 사용자 북마크 상태 확인
+                .isLiked(isLiked)
+                .isBookmarked(isBookmarked)
                 .createdAt(recipe.getCreatedAt())
                 .updatedAt(recipe.getUpdatedAt())
                 .build();

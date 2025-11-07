@@ -67,6 +67,10 @@ public class ReviewResponse {
     }
 
     public static ReviewResponse of(Review review) {
+        return of(review, false, false);
+    }
+
+    public static ReviewResponse of(Review review, boolean isLiked, boolean isBookmarked) {
         return ReviewResponse.builder()
                 .id(review.getId())
                 .modelId(review.getModel().getId())
@@ -86,8 +90,8 @@ public class ReviewResponse {
                 .viewCount(review.getViewCount())
                 .likeCount(review.getLikeCount())
                 .commentCount(review.getCommentCount())
-                .isLiked(false) // TODO: 실제 사용자 좋아요 상태 확인
-                .isBookmarked(false) // TODO: 실제 사용자 북마크 상태 확인
+                .isLiked(isLiked)
+                .isBookmarked(isBookmarked)
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
                 .build();

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/follows")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "팔로우", description = "팔로우/팔로워 관련 API")
@@ -26,7 +26,7 @@ public class FollowController {
 
     private final FollowService followService;
 
-    @PostMapping("/{userId}/follow")
+    @PostMapping("/users/{userId}")
     @Operation(summary = "팔로우 토글", description = "사용자를 팔로우하거나 언팔로우합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<Map<String, Object>>> toggleFollow(
             @Parameter(description = "팔로우할 사용자 ID") @PathVariable Long userId) {
@@ -46,7 +46,7 @@ public class FollowController {
                 result));
     }
 
-    @GetMapping("/{userId}/followers")
+    @GetMapping("/users/{userId}/followers")
     @Operation(summary = "팔로워 목록 조회", description = "사용자의 팔로워 목록을 조회합니다")
     public ResponseEntity<BaseResponse<FollowListResponse>> getFollowers(
             @Parameter(description = "사용자 ID") @PathVariable Long userId,
@@ -57,7 +57,7 @@ public class FollowController {
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
-    @GetMapping("/{userId}/following")
+    @GetMapping("/users/{userId}/following")
     @Operation(summary = "팔로잉 목록 조회", description = "사용자가 팔로우하는 사용자 목록을 조회합니다")
     public ResponseEntity<BaseResponse<FollowListResponse>> getFollowing(
             @Parameter(description = "사용자 ID") @PathVariable Long userId,
@@ -68,7 +68,7 @@ public class FollowController {
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
-    @GetMapping("/{userId}/follow-stats")
+    @GetMapping("/users/{userId}/stats")
     @Operation(summary = "팔로우 통계 조회", description = "팔로워/팔로잉 수와 팔로우 상태를 조회합니다")
     public ResponseEntity<BaseResponse<FollowStatsResponse>> getFollowStats(
             @Parameter(description = "사용자 ID") @PathVariable Long userId) {
@@ -84,7 +84,7 @@ public class FollowController {
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
-    @GetMapping("/{userId}/is-following")
+    @GetMapping("/users/{userId}/is-following")
     @Operation(summary = "팔로우 여부 확인", description = "현재 사용자가 특정 사용자를 팔로우하는지 확인합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<Map<String, Boolean>>> checkIsFollowing(
             @Parameter(description = "확인할 사용자 ID") @PathVariable Long userId) {
@@ -99,7 +99,7 @@ public class FollowController {
         return ResponseEntity.ok(BaseResponse.success(result));
     }
 
-    @GetMapping("/following/ids")
+    @GetMapping("/my/following-ids")
     @Operation(summary = "팔로잉 ID 목록 조회", description = "현재 사용자가 팔로우하는 사용자 ID 목록을 조회합니다 (인증 필요)")
     public ResponseEntity<BaseResponse<List<Long>>> getFollowingIds() {
         Long currentUserId = SecurityUtil.getCurrentUserId();

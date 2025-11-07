@@ -47,6 +47,9 @@ public class SecurityConfig {
                                 "/api/model-proposals/search").permitAll()
                 .requestMatchers("/api/users/{id}", "/api/users/email/{email}", 
                                 "/api/users/nickname/{nickname}").permitAll()
+                // 팔로우 API (조회는 공개, 토글은 인증 필요)
+                .requestMatchers("/api/follows/users/{userId}/stats", "/api/follows/users/{userId}/followers", 
+                                "/api/follows/users/{userId}/following").permitAll()
                 // 인증 API (모두 공개)
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/health/**").permitAll()
